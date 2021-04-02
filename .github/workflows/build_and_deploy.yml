@@ -1,0 +1,53 @@
+name: build-package_and_deploy
+
+on:
+  push:
+    branches:
+      - master
+#      - feature-75-devops #Give custom branch name to deploy
+
+jobs:
+  build:
+    name: Build app to package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Docker Build & Push to GitHub Package
+        uses: opspresso/action-docker@master
+        with:
+          args: --docker
+        env:
+          USERNAME: ${{ secrets.GITHUB_USERNAME }}
+          PASSWORD: ${{ secrets.GH_PERSONAL_TOKEN }}
+          REGISTRY: "docker.pkg.github.com"
+          DOCKERFILE: "Dockerfile"
+          IMAGE_NAME: "node-app-docker"
+          TAG_NAME: "master"
+          LATEST: "true"
+      - name: copy file via ssh password
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.DEV1_HOST }}
+          username: ${{ secrets.DEV1_USERNAME }}
+          password: ${{ secrets.DEV1_PASSWORD }}
+          port: ${{ secrets.DEV1_PORT }}
+          source: "*"
+          target: "/home/ubuntu/code/node-app-docker"
+      - name: Deploy command
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEV1_HOST }}
+          username: ${{ secrets.DEV1_USERNAME }}
+          password: ${{ secrets.DEV1_PASSWORD }}
+          port: ${{ secrets.DEV1_PORT }}
+          script: |
+            cd /home/ubuntu/code/node-app-docker
+            ls -al
+            cat ~/gh_token.txt | docker login https://docker.pkg.github.com -u animeshn99  --password-stdin
+            docker-compose -f docker-compose-dev.yml down || true
+            docker-compose -f docker-compose-dev.yml up --force-recreate -d
+            sleep 15
+            docker-compose -f docker-compose-dev.yml logs
+            docker-compose -f docker-compose-dev.yml ps
+

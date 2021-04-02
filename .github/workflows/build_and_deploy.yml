@@ -45,9 +45,9 @@ jobs:
             cd /home/ubuntu/code/node-app-docker
             ls -al
             cat ~/gh_token.txt | docker login https://docker.pkg.github.com -u animeshn99  --password-stdin
-            docker-compose -f docker-compose-dev.yml down || true
-            docker-compose -f docker-compose-dev.yml up --force-recreate -d
+            docker-compose down || true
+            docker-compose up --force-recreate -d
             sleep 15
-            docker-compose -f docker-compose-dev.yml logs
-            docker-compose -f docker-compose-dev.yml ps
+            docker-compose logs
+            docker-compose ps
 
